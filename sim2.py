@@ -233,11 +233,10 @@ results = {
     'Value': [diff_psi, ovb_dep]
 }
 results_table = pd.DataFrame(results)
-print(results_table)
+print("Result Table:", results_table)
 
 print("Lower bound:", ovb_lb)
 print("Upper bound:", ovb_ub)
 
 print("Prime Lower bound:", ovb_prime_lb)
 print("Prime Upper bound:", ovb_prime_ub)
-#
