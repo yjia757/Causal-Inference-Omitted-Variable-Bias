@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 from sklearn.model_selection import train_test_split
 # Set seed for reproducibility
 np.random.seed(43)
@@ -181,47 +181,50 @@ diff_psi = psi_short - psi_true
 
 ## Building the OVB in scratch paper
 T1 = np.mean((predict_test['b0_short']- predict_test['ite_b1b0_short_true']) * diff_a0pi0)
-T2 = np.mean((predict_test['ite_b1b0_short_true'] - predict_test['b0_true']) * diff_a0pi0)
-T3 = np.mean(a0pi0_short * diff_b1 * diff_a1pi1)
-ovb_dep = T1 + T2 + T3
 
-# Compute upper bound of T1_square, T2_square, and T3_square, lines 18, 19, 20
-T11_square = np.mean((predict_test['b0_short']- predict_test['ite_b1b0_short_true']) ** 2)
-T12_square = np.mean(diff_a0pi0 ** 2)
-T21_square = np.mean((predict_test['ite_b1b0_short_true'] - predict_test['b0_true']) ** 2)
-T21_square_prime = np.mean(diff_b1 ** 2)
-T22_square = np.mean(diff_a0pi0 ** 2)
-T31_square = np.mean(a0pi0_short * (diff_b1 ** 2))
-T32_square = np.mean(a0pi0_short * (diff_a1pi1 ** 2))
 
-T1_square_ub = T11_square * T12_square
-T2_square_ub = T21_square * T22_square
-T2_square_prime_ub = T21_square_prime * T22_square
-T3_square_ub = T31_square * T32_square
+# Next I'm exploring the difference between the projection of longRR versus what we have to answer my question about T3 in draft3.2
+K3 = np.mean(diff_b1 * (a1pi1_true * a0pi0_true - a1pi1_short * a0pi0_short))  # 0.07357
 
-T1_ub = np.sqrt(T1_square_ub)
-T2_ub = np.sqrt(T2_square_ub)
-T2_prime_ub = np.sqrt(T2_square_prime_ub)
-T3_ub = np.sqrt(T3_square_ub)
+predict_test['Z'] = a1pi1_true * a0pi0_true
+X_proj = predict_test[['A_0', 'A_1', 'L_0', 'L_1']]
+# X_proj = predict_test[['A_0', 'L_0']]
+Y_proj = predict_test['Z']
+X_train_proj, X_test_proj, Y_train_proj, Y_test_proj = train_test_split(
+    X_proj, Y_proj, test_size=0.5, random_state=42
+)
 
-ovb_ub = T1_ub + T2_ub + T3_ub
-ovb_lb = -ovb_ub
+# Extract the indices of the test set
+test_indices = X_test_proj.index
+# Create a new predict_test DataFrame containing only the test set observations
+new_predict_test = predict_test.loc[test_indices].copy()
 
-ovb_prime_ub = T1_ub + T2_prime_ub + T3_ub
-ovb_prime_lb = -ovb_prime_ub
+model_xgb = XGBRegressor(
+    n_estimators=100,     # Number of trees
+    max_depth=5,          # Maximum depth of a tree
+    learning_rate=0.1,    # Learning rate (eta)
+    subsample=0.8,        # Subsample ratio of training data
+    colsample_bytree=0.8, # Subsample ratio of columns when constructing each tree
+    random_state=43       # Random seed for reproducibility
+)
+model_xgb.fit(X_train_proj, Y_train_proj)
 
-## Collect the desired variables into a dictionary
-results = {
-    'Variable': ['diff_psi', 'ovb_dep'],
-    'Value': [diff_psi, ovb_dep]
-}
-results_table = pd.DataFrame(results)
-print("Result Table:", results_table)
+new_predict_test['Z_proj_test'] = model_xgb.predict(X_test_proj)
 
-print("Lower bound:", ovb_lb)
-print("Upper bound:", ovb_ub)
+idea_K3 = np.mean(diff_b1 * (a1pi1_true * a0pi0_true - new_predict_test['Z_proj_test']))
 
-print("Prime Lower bound:", ovb_prime_lb)
-print("Prime Upper bound:", ovb_prime_ub)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

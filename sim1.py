@@ -185,7 +185,8 @@ ovb_adv = B1 + B2
 K1 = T1
 K2 = T2
 K3 = np.mean(diff_b1 * (a1pi1_true * a0pi0_true - a1pi1_short * a0pi0_short))
-K4 = np.mean(diff_b1 * (a0pi0_short - a0pi0_true))
+K4 = np.mean(diff_b1 * a1pi1_true * (a0pi0_short - a0pi0_true))
+# K4 = np.mean(diff_b1 * (a0pi0_short - a0pi0_true))
 ovb_debug = K1 + K2 + K3 + K4
 
 # My proof on K2 + K4 = 0 is correct.
